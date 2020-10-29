@@ -1,0 +1,26 @@
+*1. how to sort between guards, wings and bigs?*
+
+Proposal A: input height and weight of entire NBA player pool and categorize by guard, wing and big
+ad A: can determine average build for each archetype and output reasonable summary statistics to compare prospects with
+disad A: sorting by guard, wing and big subjectively will add bias to data...not everyone will agree as to whether a player fits in a certain archetype (e.g Gary Harris, Robert Covington)
+
+Proposal B: plot height and weight for entire NBA player pool and find clusters
+ad B: an objective and data driven method to sort players by position
+disad B1: possibility that there will be no clean clusters to sort
+disad B2: players in the same build may have vastly varying skillsets (Draymond Green and Klay Thompson)
+
+Proposal C: either of the options above, but instead of using the entire NBA player pool, only use starters
+ad C1: assumption is being named a starter means a player is a relatively successful NBA player...ideally we want to compare prospects to players who have success in the NBA to determine their own chances of success
+ad C2: starters have more certainty where they fall into archetypes based on their proven ability to contribute in games // no guesswork needed 
+disad C: NBA starters vary even game by game
+solution C: 30 teams x 5 starters per team = 150 starters in theory...take the top 5 players in minutes played for each team...even if gameplan does not call for a player to play with a certain unit, we are looking here for successful NBA players with defined roles and a large sample size
+
+*2. how to determine prospect success?*
+
+Proposal A: find successful sub-archetypes within positions and the stats that correlate strongly with success in those sub-archetypes (pull-up shooters for guards, two-way ability for wings, shooting for bigs)
+ad A: with limited breadth of NCAA data, we can be selective in which metrics we deem important to make a best estimation as to how successful a player will be in each archetype.
+disad A: much of this data may prove unneccesary and inefficient with players we KNOW cannot succeed as a certain archetype, but we measure for it anyways
+
+Proposal B: crunch as many advanced, traditional and usage stats as possible to create a comprehensive player model
+ad B: gives the measure with the most data and metrics behind it, so it should be "accurate"
+disad B: this proposal should be "accurate" in theory, but introducing comprehensive information raises likelihood of introducing wasteful noise into the model
