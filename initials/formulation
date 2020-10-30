@@ -1,6 +1,7 @@
 *1. how to sort between guards, wings and bigs?*
 
-underlying issue: NBA player heights and weights ARE NOT accurate // working with unreliable data so making the assumption that all recorded heights and weights are deviated by the same amount
+underlying decision 1: NBA player heights and weights ARE NOT accurate // working with unreliable data so making the assumption that all recorded heights and weights are deviated by the same amount
+underlying decision 2: is it better to split offense and defense?
 
 Proposal A: input height and weight of entire NBA player pool and categorize by guard, wing and big
 ad A: can determine average build for each archetype and output reasonable summary statistics to compare prospects with
