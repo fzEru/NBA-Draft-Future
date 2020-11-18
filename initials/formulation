@@ -27,3 +27,20 @@ disad A: much of this data may prove unneccesary and inefficient with players we
 Proposal B: crunch as many advanced, traditional and usage stats as possible to create a comprehensive player model
 ad B: gives the measure with the most data and metrics behind it, so it should be "accurate"
 disad B: this proposal should be "accurate" in theory, but introducing comprehensive information raises likelihood of introducing wasteful noise into the model
+
+*3. stat groupings*
+
+TS% - 
+3PAr - 
+FTr - 
+
+ORB% - 
+
+AST% - 
+
+STL% - 
+BLK% - 
+
+OBPM - 
+DBPM - 
+VORP
