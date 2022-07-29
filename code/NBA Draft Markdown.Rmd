@@ -1,0 +1,237 @@
+---
+title: "NBA Draft Markdown"
+author: "Mohammed Khan"
+date: '2022-06-16'
+output: html_document
+---
+
+# TO-DO
+
+## clean data for 18-21 
+## train model with data 09-21
+## run model on 22
+## clean ggplot
+## check training accuracy by comparing max prob with cluster class
+
+# P1 |> 
+## plot PCA
+### basic v added condor
+## generate table
+## show outliers
+## by draft position
+
+# RESOURCES
+
+## Regression
+### tutorial : https://stats.oarc.ucla.edu/r/dae/multinomial-logistic-regression/
+
+## Pace and Space 
+### trends : https://trends.google.com/trends/explore?cat=264&date=all&geo=US&q=pace%20and%20space
+
+## Predicted Probabilities Notes 09-17
+### Marcus Smart
+## Nerlens Noel
+## Kawhi Leonard
+### 2.0+ college DWS / average condor ~7 inches 
+
+## Meyers Leonard
+## Willie Warren
+## Lorenzo Brown
+
+
+```{r setup}
+library(tidyverse) # data manipulation
+library(factoextra) # clustering viz
+library(data.table) # for fread
+library(progress)
+# load progress bar / call pb$tick(0)
+pb <- progress_bar$new(total = 100)
+# recent db
+height_weight <- read.csv("measurements.csv")
+# draft db
+dl20 <- read.csv("2020-2020 NBA Draft Lottery.csv")
+dl21 <- read.csv("2021-2021 NBA Draft Lottery.csv")
+# for missing wingspans
+wing2018 <- read.csv("2018 wingspan.csv")
+wing2019 <- read.csv("2019 wingspan.csv")
+wing2020 <- read.csv("2020 wingspan.csv")
+wing2021 <- read.csv("2021 wingspan.csv")
+# 2009 - 2017
+combine <- read.csv("combine_all.csv")
+```
+
+```{r clean}
+# one entry per player
+hw_test <- height_weight |> 
+  distinct(Player, .keep_all = TRUE)
+# convert feet-inches to inches for hw 
+hw_test.1 <- hw_test |> 
+  janitor::clean_names() |> 
+  separate(height, c('feet', 'inches'), sep = '-', convert = TRUE, remove = FALSE) |> 
+  mutate(height = 12 * feet + inches) |> 
+  select(-c(feet, inches)) |> 
+  filter(draft_year >= 2018 & draft_year != c("Undrafted", ""))
+# remove height with shoes 
+combine.1 <- combine |> 
+  select(-Height..With.Shoes.) |> 
+  rename(Height = Height..No.Shoes.) |> 
+  janitor::clean_names() |> 
+  mutate(condor = wingspan - height)
+dl20.test <- dl20 |> 
+  janitor::clean_names() |> 
+  select(last, height, wingspan, weight) |> 
+  mutate(condor = wingspan - height)
+dl21.test <- dl21 |> 
+  janitor::clean_names() |> 
+  select(last, height, wingspan, weight) |> 
+  mutate(condor = wingspan - height)
+```
+
+```{r explore}
+condor_metric <- combine.1 |> 
+  select(condor, bench, agility, sprint) |> 
+  group_by(condor) |> 
+  summarise(across(everything(), .f = list(mean = mean), na.rm = TRUE))
+```
+
+```{r cluster}
+# prep for clustering 
+combine.clus.basic <- combine.1 |> 
+  select(height, wingspan, weight) |> 
+  na.omit()
+combine.clus.all <- combine.1 |> 
+  select(height, wingspan, weight, condor) |> 
+  na.omit()
+test <- combine.1 |> 
+  select(player, height, wingspan, weight, condor, bench, agility, sprint) |> 
+  na.omit()
+# kmeans 
+set.seed(1234)
+kmeans.basic <- kmeans(x = combine.clus.basic, centers = 5, nstart = 25)
+kmeans.all <- kmeans(x = combine.clus.all, centers = 5, nstart = 25)
+# attach clusters to data 
+combine.clus.basic$cluster <- kmeans.basic$cluster
+combine.clus.all$cluster <- kmeans.all$cluster
+#combine.1$cluster <- as.factor(combine.clus.basic$cluster)
+# viz kmeans 
+pca.basic <- fviz_cluster(kmeans.basic, combine.clus.basic)
+pca.all <- fviz_cluster(kmeans.all, combine.clus.all)
+pca.basic
+pca.all
+combine.clus.basic$player <- combine.1$player
+combine.clus.all$player <- combine.1$player
+# recode clusters to positions 1-5 for basic
+combine.basic <- combine.clus.basic |> 
+  mutate(position = recode(cluster, "1" = 1, "2" = 3, "3" = 5 ,"4" = 2, "5" = 4)) |> 
+  mutate(position = as.factor(position)) |> 
+  select(c(player, height, wingspan, weight, position))
+# recode clusters to positions 1-5 for all
+combine.all <- combine.clus.all |> 
+  mutate(position = recode(cluster, "1" = 1, "2" = 4, "3" = 5, "4" = 3, "5" = 2)) |> 
+  mutate(position = as.factor(position)) |> 
+  select(c(player, height, wingspan, weight, condor, position))
+# means by position check for basic
+combine.mean.basic <- combine.basic |> 
+  select(-player) |> 
+  group_by(position) |> 
+  summarise(across(everything(), mean)) |> 
+  # recode default cluster numbers to postion numbers 
+  ## possible change to if/else 
+  mutate(position = recode(position, 
+                           "1" = "1's", "2" = "2's", "3" = "3's", "4" = "4's", "5" = "5's")) |> 
+  # change case of columns to capital first letter, rest lowercase
+  rename_with(str_to_title) |> 
+  # create condor variable from height and weight 
+  mutate(Condor = Wingspan - Height) |> 
+  # round all numerical values to 2 decimal places 
+  mutate_if(is.numeric, round, digits = 1) |> 
+  relocate("Condor", .after = "Wingspan")
+# means by position check for all
+combine.mean.all <- combine.all |> 
+  select(-player) |> 
+  group_by(position) |> 
+  summarise(across(everything(), mean))
+# means by pace and space
+```
+
+```{r gt_table}
+require(gt)
+require(gtExtras)
+combine.mean.basic |> 
+  gt() |> 
+  gt_theme_538() |> 
+  tab_header(title = "Average Measurements of Height (in.), Wingspan (in.), 
+             and Weight (lbs.) By Position",
+             subtitle = "Note: Condor is the difference between Wingspan and Height") |> 
+  gt::data_color(
+    columns = Height:Weight, colors = c("Red", "Black")
+  )
+```
+
+
+```{r ggplot}
+pca.basic + 
+  ggtitle("NBA Player Clusters \nby Height, Wingspan, and Weight") + 
+  scale_fill_discrete(name = "Position", labels = c("Ones", "Threes", "Fives", "Twos", "Fours")) + 
+  theme_classic()
+  
+```
+
+```{r multinomial regression basic}
+require(foreign)
+require(nnet)
+require(ggplot2)
+require(reshape2)
+
+combine.basic$position_2 <- relevel(combine.basic$position, ref = "1")
+train.basic <- multinom(position_2 ~ height + wingspan + weight, 
+                        data = combine.basic)
+summary(train.basic)
+z <- summary(train.basic)$coefficients / summary(train.basic)$standard.errors
+z
+p <- (1 - pnorm(abs(z), 0, 1)) * 2
+p
+exp(coef(train.basic))
+# predicted probabilities of position
+head(pp <- fitted(train.basic))
+combine.basic$pp <- round(pp, 4)
+```
+
+```{r multinomial regression all}
+require(foreign)
+require(nnet)
+require(ggplot2)
+require(reshape2)
+
+combine.all$position_2 <- relevel(combine.basic$position, ref = "1")
+train.all <- multinom(position_2 ~ height + wingspan + weight + condor, 
+                        data = combine.all)
+summary(train.all)
+z <- summary(train.all)$coefficients / summary(train.all)$standard.errors
+z
+p <- (1 - pnorm(abs(z), 0, 1)) * 2
+p
+exp(coef(train.all))
+# predicted probabilities of position
+head(pp <- fitted(train.all))
+combine.basic$pp <- round(pp, 4)
+```
+
+```{r test}
+dl20.test$pp.basic1 <- predict(train.basic, newdata = dl20.test, type = "class")
+dl20.test$pp.basic2 <- round(predict(train.basic, newdata = dl20.test, type = "prob"), 4)
+
+dl21.test$pp.basic1 <- predict(train.basic, newdata = dl21.test, type = "class")
+dl21.test$pp.basic2 <- round(predict(train.basic, newdata = dl21.test, type = "prob"), 4)
+
+dl20.test$pp.all1 <- predict(train.all, newdata = dl20.test, type = "class")
+#dl20.test$pp.basic2 <- round(predict(train.all, newdata = dl20.test, type = "prob"), 4)
+
+dl21.test$pp.all1 <- predict(train.all, newdata = dl21.test, type = "class")
+#dl21.test$pp.basic2 <- round(predict(train.all, newdata = dl21.test, type = "prob"), 4)
+```
+
+
+
+
+
